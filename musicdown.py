@@ -11,7 +11,7 @@ def mostrar_titulo():
     """Muestra el banner estilo hacker."""
     print("\033[92m" + "=" * 50)
     print("            CANCIÓN DOWNLOADER v2.0")
-    print("          (Powered by yt-dlp & Python)")
+    print("          (Powered by Antuan & Programer)")
     print("=" * 50 + "\033[0m")
 
 def cargar_configuracion():
