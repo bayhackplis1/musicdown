@@ -7,13 +7,19 @@ import re
 # Ruta del archivo de configuración
 CONFIG_PATH = Path.home() / ".cancion_downloader_config.json"
 
+def mostrar_titulo():
+    """Muestra el banner estilo hacker."""
+    print("\033[92m" + "=" * 50)
+    print("            CANCIÓN DOWNLOADER v2.0")
+    print("          (Powered by yt-dlp & Python)")
+    print("=" * 50 + "\033[0m")
+
 def cargar_configuracion():
     """Carga la configuración guardada, si existe, y asegura valores predeterminados."""
     default_config = {'download_path': str(Path.home() / "Music" / "MEmu Music"), 'quality': '192', 'search_limit': 10}
     if CONFIG_PATH.is_file():
         with open(CONFIG_PATH, 'r') as config_file:
             user_config = json.load(config_file)
-            # Asegura que existan todas las claves predeterminadas
             for key, value in default_config.items():
                 if key not in user_config:
                     user_config[key] = value
@@ -23,34 +29,31 @@ def cargar_configuracion():
 
 def guardar_configuracion(config):
     """Guarda la configuración en un archivo JSON."""
-    try:
-        with open(CONFIG_PATH, 'w') as config_file:
-            json.dump(config, config_file)
-    except IOError as e:
-        print(f"Error al guardar la configuración: {e}")
-
-def validar_entrada(busqueda):
-    """Valida que la entrada no esté vacía o contenga solo espacios."""
-    return bool(busqueda.strip())
+    with open(CONFIG_PATH, 'w') as config_file:
+        json.dump(config, config_file)
 
 def obtener_ruta_descarga(config):
     """Permite al usuario especificar la ruta de descarga o usar la predeterminada."""
-    respuesta = input("¿Quieres usar la ruta de descarga predeterminada? (s/n): ")
-    if respuesta.lower() == 'n':
-        ruta = input("Ingresa la ruta completa de la carpeta donde deseas guardar los archivos: ")
-        config['download_path'] = str(Path(ruta).expanduser())
-        guardar_configuracion(config)
-    return Path(config['download_path'])
+    print("\033[93mRuta de descarga actual: \033[0m", config["download_path"])
+    respuesta = input("\033[94m¿Deseas cambiar la ruta? (s/n): \033[0m").strip().lower()
+    if respuesta == "s":
+        ruta = input("\033[94mIngresa la nueva ruta de descarga: \033[0m").strip()
+        if ruta:
+            config["download_path"] = str(Path(ruta).expanduser())
+            guardar_configuracion(config)
+    return Path(config["download_path"])
 
 def mostrar_resultados(resultados):
     """Muestra los resultados de búsqueda al usuario."""
-    print("Resultados encontrados:")
+    print("\n\033[92mResultados encontrados:\033[0m")
     for i, entry in enumerate(resultados['entries']):
-        print(f"{i + 1}: {entry['title']}")
+        duracion = entry.get("duration", "??")
+        duracion = f"{duracion // 60}:{duracion % 60:02d}" if isinstance(duracion, int) else "??:??"
+        print(f"[{i + 1}] {entry['title']} | Duración: {duracion} | Autor: {entry.get('uploader', 'Desconocido')}")
 
 def verificar_archivo_existente(salida, title, ext):
     """Verifica si el archivo ya existe en la ruta de salida."""
-    safe_title = re.sub(r'[<>:"/\\|?*]', '', title)  # Limpia caracteres no válidos
+    safe_title = re.sub(r'[<>:"/\\|?*]', '', title)
     return Path(salida / f"{safe_title}.{ext}").is_file()
 
 def hook(d):
@@ -59,85 +62,71 @@ def hook(d):
         percent = d.get('downloaded_bytes', 0) / d.get('total_bytes', 1) * 100
         print(f"Descargando: {percent:.2f}% completado", end="\r")
     elif d['status'] == 'finished':
-        print(f"\nDescarga completa: {d['filename']}")
+        print(f"\n\033[92mDescarga completa: {d['filename']}\033[0m")
 
 def descargar_cancion():
+    mostrar_titulo()
     config = cargar_configuracion()
     salida = obtener_ruta_descarga(config)
     salida.mkdir(parents=True, exist_ok=True)
 
-    # Elegir modo de entrada
-    modo = input("¿Deseas buscar por nombre (1) o ingresar un enlace directo (2)? Ingresa 1 o 2: ")
-    if modo == '1':
-        busqueda = input("Ingresa el nombre de la canción o video que deseas descargar: ")
-        if not validar_entrada(busqueda):
-            print("La búsqueda no puede estar vacía.")
+    print("\n\033[93mSelecciona un modo:\033[0m")
+    print("[1] Buscar por nombre")
+    print("[2] Ingresar enlace directo")
+    modo = input("\033[94mElige una opción (1 o 2): \033[0m").strip()
+
+    if modo == "1":
+        busqueda = input("\033[94mIngresa el nombre de la canción o video: \033[0m").strip()
+        if not busqueda:
+            print("\033[91mError: La búsqueda no puede estar vacía.\033[0m")
             return
-    elif modo == '2':
-        busqueda = input("Ingresa el enlace directo del video: ")
-        if not validar_entrada(busqueda):
-            print("El enlace no puede estar vacío.")
+    elif modo == "2":
+        busqueda = input("\033[94mIngresa el enlace directo: \033[0m").strip()
+        if not busqueda:
+            print("\033[91mError: El enlace no puede estar vacío.\033[0m")
             return
     else:
-        print("Opción inválida. Inténtalo de nuevo.")
+        print("\033[91mOpción inválida.\033[0m")
         return
 
-    # Elegir formato
-    formato = input("¿Qué formato deseas descargar? Ingresa 'mp3' o 'mp4': ").lower()
-    if formato not in ['mp3', 'mp4']:
-        print("Formato inválido. Inténtalo de nuevo.")
+    formato = input("\033[94m¿Formato de descarga (mp3/mp4)? \033[0m").strip().lower()
+    if formato not in ["mp3", "mp4"]:
+        print("\033[91mError: Formato no reconocido.\033[0m")
         return
 
     ydl_opts = {
         'format': 'bestaudio/best' if formato == 'mp3' else 'bestvideo+bestaudio/best',
-        'postprocessors': [{
+        'postprocessors': [({
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': config['quality'],
-        }] if formato == 'mp3' else [],
+        })] if formato == 'mp3' else [],
         'outtmpl': str(salida / '%(title)s.%(ext)s'),
         'progress_hooks': [hook],
     }
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         try:
-            if modo == '1':
+            if modo == "1":
                 resultados = ydl.extract_info(f"ytsearch{config['search_limit']}:{busqueda}", download=False)
                 if 'entries' in resultados and len(resultados['entries']) > 0:
                     mostrar_resultados(resultados)
-
-                    seleccion = input("Ingresa los números de los videos que deseas descargar (separados por comas): ")
-                    try:
-                        indices = [int(num.strip()) - 1 for num in seleccion.split(",") if num.strip().isdigit()]
-                        if any(i < 0 or i >= len(resultados['entries']) for i in indices):
-                            raise ValueError("Índice fuera de rango")
-                    except ValueError:
-                        print("Entrada inválida. Inténtalo de nuevo.")
-                        return
-
+                    seleccion = input("\033[94mSelecciona los videos a descargar (separados por comas): \033[0m").strip()
+                    indices = [int(x) - 1 for x in seleccion.split(",") if x.strip().isdigit()]
                     for i in indices:
                         video = resultados['entries'][i]
                         title = video['title']
                         if verificar_archivo_existente(salida, title, formato):
-                            respuesta = input(f"El archivo '{title}.{formato}' ya existe. ¿Deseas reemplazarlo? (s/n): ")
-                            if respuesta.lower() == 'n':
-                                print(f"Saltar descarga de '{title}'.")
-                                continue
-
-                        url = video['webpage_url']
-                        print(f"Descargando: {title}")
-                        ydl.download([url])
+                            print(f"\033[93mSaltando {title}: ya existe.\033[0m")
+                            continue
+                        ydl.download([video['webpage_url']])
                 else:
-                    print("No se encontraron resultados.")
+                    print("\033[91mNo se encontraron resultados.\033[0m")
             else:
-                # Descargar directamente desde el enlace
                 ydl.download([busqueda])
-
-            print("Descargas completadas con éxito.")
-        except youtube_dl.DownloadError:
-            print("Error al descargar. Verifica el enlace o tu conexión a internet.")
+            print("\033[92mDescargas completadas con éxito.\033[0m")
         except Exception as e:
-            print(f"Ocurrió un error: {e}")
+            print(f"\033[91mError: {e}\033[0m")
 
 if __name__ == "__main__":
     descargar_cancion()
