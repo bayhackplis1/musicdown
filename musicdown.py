@@ -8,11 +8,18 @@ import re
 CONFIG_PATH = Path.home() / ".cancion_downloader_config.json"
 
 def cargar_configuracion():
-    """Carga la configuración guardada, si existe."""
+    """Carga la configuración guardada, si existe, y asegura valores predeterminados."""
+    default_config = {'download_path': str(Path.home() / "Music" / "MEmu Music"), 'quality': '192', 'search_limit': 10}
     if CONFIG_PATH.is_file():
         with open(CONFIG_PATH, 'r') as config_file:
-            return json.load(config_file)
-    return {'download_path': str(Path.home() / "Music" / "MEmu Music"), 'quality': '192', 'search_limit': 10}
+            user_config = json.load(config_file)
+            # Asegura que existan todas las claves predeterminadas
+            for key, value in default_config.items():
+                if key not in user_config:
+                    user_config[key] = value
+                    guardar_configuracion(user_config)
+            return user_config
+    return default_config
 
 def guardar_configuracion(config):
     """Guarda la configuración en un archivo JSON."""
