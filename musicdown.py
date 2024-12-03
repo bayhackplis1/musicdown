@@ -35,7 +35,7 @@ def guardar_configuracion(config):
 def obtener_ruta_descarga(config):
     """Permite al usuario especificar la ruta de descarga o usar la predeterminada."""
     print("\033[93mRuta de descarga actual: \033[0m", config["download_path"])
-    respuesta = input("\033[94m¿Deseas cambiar la ruta? (s/n): \033[0m").strip().lower()
+    respuesta = input("\033[94m¿Deseas cambiar la ruta? (si/no): \033[0m").strip().lower()
     if respuesta == "s":
         ruta = input("\033[94mIngresa la nueva ruta de descarga: \033[0m").strip()
         if ruta:
