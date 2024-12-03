@@ -10,7 +10,7 @@ CONFIG_PATH = Path.home() / ".cancion_downloader_config.json"
 def mostrar_titulo():
     """Muestra el banner estilo hacker."""
     print("\033[92m" + "=" * 50)
-    print("            CANCIÓN DOWNLOADER v2.0")
+    print("            Youtube Downloader v2.0")
     print("          (Powered by Antuan & Programer)")
     print("=" * 50 + "\033[0m")
 
