@@ -82,6 +82,18 @@ def obtener_ruta_descarga(config):
             guardar_configuracion(config)
     return Path(config["download_path"])
 
+def obtener_formato():
+    """Permite al usuario seleccionar un formato de salida."""
+    formatos = ["mp3", "mp4"]
+    print("\nFormatos disponibles:")
+    for i, formato in enumerate(formatos, 1):
+        print(f"[{i}] {formato}")
+    seleccion = input(YELLOW + "Selecciona un formato: " + RESET).strip()
+    if seleccion.isdigit() and 1 <= int(seleccion) <= len(formatos):
+        return formatos[int(seleccion) - 1]
+    print(RED + "Selección inválida, se usará mp3 por defecto." + RESET)
+    return "mp3"
+
 def mostrar_resultados(resultados):
     """Muestra los resultados de búsqueda al usuario."""
     print("\n" + GREEN + "Resultados encontrados:" + RESET)
@@ -108,6 +120,7 @@ def descargar_cancion():
     config = cargar_configuracion()
     salida = obtener_ruta_descarga(config)
     salida.mkdir(parents=True, exist_ok=True)
+    formato = obtener_formato()
 
     while True:
         hacker_menu()
@@ -121,9 +134,10 @@ def descargar_cancion():
 
             hacker_cargando("Buscando canciones")
             ydl_opts = {
-                'format': 'bestaudio/best',
+                'format': 'bestaudio/best' if formato == "mp3" else 'bestvideo+bestaudio',
+                'outtmpl': str(salida / f'%(title)s.{formato}'),
+                'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': config["quality"]}] if formato == "mp3" else [],
                 'noplaylist': True,
-                'outtmpl': str(salida / '%(title)s.%(ext)s'),
                 'progress_hooks': [hook]
             }
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
@@ -131,10 +145,10 @@ def descargar_cancion():
                 if 'entries' in resultados and len(resultados['entries']) > 0:
                     mostrar_resultados(resultados)
                     seleccion = input(BLUE + "Selecciona los videos a descargar (separados por comas): " + RESET).strip()
-                    indices = [int(x) - 1 for x in seleccion.split(",") if x.strip().isdigit()]
+                    indices = [int(x) - 1 for x in seleccion.split(",") if x.strip().isdigit() and 0 <= int(x) - 1 < len(resultados['entries'])]
                     for i in indices:
                         video = resultados['entries'][i]
-                        if verificar_archivo_existente(salida, video['title'], 'mp3'):
+                        if verificar_archivo_existente(salida, video['title'], formato):
                             print(YELLOW + f"Saltando {video['title']}: ya existe." + RESET)
                             continue
                         ydl.download([video['webpage_url']])
@@ -148,15 +162,16 @@ def descargar_cancion():
                 continue
             hacker_cargando("Iniciando descarga")
             ydl_opts = {
-                'format': 'bestaudio/best',
-                'outtmpl': str(salida / '%(title)s.%(ext)s'),
+                'format': 'bestaudio/best' if formato == "mp3" else 'bestvideo+bestaudio',
+                'outtmpl': str(salida / f'%(title)s.{formato}'),
+                'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': config["quality"]}] if formato == "mp3" else [],
                 'progress_hooks': [hook]
             }
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([enlace])
 
         elif opcion == "3":
-            print(YELLOW + "¡Hasta luego, hacker!" + RESET)
+            print(YELLOW + "¡Hasta luego, !" + RESET)
             break
 
         else:
