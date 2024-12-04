@@ -194,7 +194,7 @@ def descargar_cancion():
             seleccionar_formato(config)
 
         elif opcion == "6":
-            print(YELLOW + "¡Hasta luego, hacker!" + RESET)
+            print(YELLOW + "¡Hasta luego, !" + RESET)
             break
 
         else:
