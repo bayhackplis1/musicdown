@@ -15,7 +15,10 @@ GREEN = "\033[92m"
 BLUE = "\033[94m"
 YELLOW = "\033[93m"
 RED = "\033[91m"
+MAGENTA = "\033[95m"
+CYAN = "\033[96m"
 RESET = "\033[0m"
+BLINK = "\033[5m"
 
 # Funciones de diseño
 def hacker_titulo():
@@ -27,27 +30,33 @@ def hacker_titulo():
         "██╔══██║██║╚██╗██║   ██║   ██║   ██║██╔══██║██║╚██╗██║",
         "██║  ██║██║ ╚████║   ██║   ╚██████╔╝██║  ██║██║ ╚████║",
         "╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝",
-        "                ANTUAN Downloader"
+        "             ANTUAN DOWNLOADER v2.0"
     ]
-    print(GREEN + "=" * 60 + RESET)
+    border = MAGENTA + "=" * 60 + RESET
+    print(border)
     for line in lines:
-        print(choice([GREEN, BLUE, YELLOW]) + line.center(60) + RESET)
-    print(GREEN + "=" * 60 + RESET)
+        print(choice([GREEN, BLUE, YELLOW, CYAN]) + line.center(60) + RESET)
+    print(border)
 
 def hacker_menu():
-    """Muestra un menú principal con estilo."""
+    """Muestra un menú principal con un diseño visual dinámico."""
     options = [
-        "[1] Buscar por nombre",
-        "[2] Ingresar enlace directo",
-        "[3] Descargar lista de reproducción",
-        "[4] Configuración de descarga",
-        "[5] Seleccionar formato (MP3/MP4)",
-        "[6] Salir"
+        "[1] 🔍 Buscar por nombre",
+        "[2] 🔗 Ingresar enlace directo",
+        "[3] 📜 Descargar lista de reproducción",
+        "[4] ⚙️  Configuración de descarga",
+        "[5] 🎵 Seleccionar formato (MP3/MP4)",
+        "[6] ❌ Salir"
     ]
-    print(BLUE + "\nSelecciona una opción:\n" + RESET)
+
+    print(f"\n{MAGENTA}{BLINK}Bienvenido, selecciona una opción:{RESET}\n")
+    border = CYAN + "-" * 60 + RESET
+    print(border)
+
     for option in options:
-        print(choice([GREEN, BLUE, YELLOW]) + option.center(60) + RESET)
-    print()
+        print(choice([GREEN, YELLOW, MAGENTA, CYAN]) + option.center(60) + RESET)
+
+    print(border)
 
 def hacker_cargando(mensaje):
     """Simula un mensaje de carga estilo hacker."""
@@ -137,6 +146,7 @@ def descargar_cancion():
         opcion = input(GREEN + "Elige una opción: " + RESET).strip()
 
         if opcion == "1":
+            # Lógica de búsqueda por nombre
             busqueda = input(BLUE + "Ingresa el nombre de la canción o video: " + RESET).strip()
             if not busqueda:
                 print(RED + "Error: La búsqueda no puede estar vacía." + RESET)
@@ -162,6 +172,7 @@ def descargar_cancion():
                     print(RED + "No se encontraron resultados." + RESET)
 
         elif opcion == "2":
+            # Lógica para descargar desde enlace directo
             enlace = input(BLUE + "Ingresa el enlace directo: " + RESET).strip()
             if not enlace:
                 print(RED + "Error: El enlace no puede estar vacío." + RESET)
@@ -176,6 +187,7 @@ def descargar_cancion():
                 ydl.download([enlace])
 
         elif opcion == "3":
+            # Lógica para listas de reproducción
             enlace = input(BLUE + "Ingresa el enlace de la lista de reproducción: " + RESET).strip()
             hacker_cargando("Descargando lista de reproducción")
             ydl_opts = {
@@ -188,17 +200,21 @@ def descargar_cancion():
                 ydl.download([enlace])
 
         elif opcion == "4":
+            # Configuración de descarga
             salida = obtener_ruta_descarga(config)
 
         elif opcion == "5":
+            # Selección de formato
             seleccionar_formato(config)
 
         elif opcion == "6":
-            print(YELLOW + "¡Hasta luego, !" + RESET)
+            # Salir del programa
+            print(MAGENTA + "¡Gracias por usar el downloader! Hasta luego." + RESET)
             break
 
         else:
-            print(RED + "Opción inválida, intenta de nuevo." + RESET)
+            print(RED + "Opción inválida. Por favor, intenta de nuevo." + RESET)
 
+# Inicia la aplicación
 if __name__ == "__main__":
     descargar_cancion()
