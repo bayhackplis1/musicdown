@@ -5,6 +5,7 @@ import json
 import re
 import time
 from random import choice
+from mutagen.easyid3 import EasyID3
 
 # Ruta del archivo de configuración
 CONFIG_PATH = Path.home() / ".cancion_downloader_config.json"
@@ -20,13 +21,13 @@ RESET = "\033[0m"
 def hacker_titulo():
     """Muestra un banner estilo hacker."""
     lines = [
-         " █████╗ ███╗   ██╗████████╗██╗   ██╗ █████╗ ███╗   ██╗",
+        " █████╗ ███╗   ██╗████████╗██╗   ██╗ █████╗ ███╗   ██╗",
         "██╔══██╗████╗  ██║╚══██╔══╝██║   ██║██╔══██╗████╗  ██║",
         "███████║██╔██╗ ██║   ██║   ██║   ██║███████║██╔██╗ ██║",
         "██╔══██║██║╚██╗██║   ██║   ██║   ██║██╔══██║██║╚██╗██║",
         "██║  ██║██║ ╚████║   ██║   ╚██████╔╝██║  ██║██║ ╚████║",
         "╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝",
-         "                ANTUAN Downloader"
+        "                ANTUAN Downloader"
     ]
     print(GREEN + "=" * 60 + RESET)
     for line in lines:
@@ -38,7 +39,10 @@ def hacker_menu():
     options = [
         "[1] Buscar por nombre",
         "[2] Ingresar enlace directo",
-        "[3] Salir"
+        "[3] Descargar lista de reproducción",
+        "[4] Configuración de descarga",
+        "[5] Seleccionar formato (MP3/MP4)",
+        "[6] Salir"
     ]
     print(BLUE + "\nSelecciona una opción:\n" + RESET)
     for option in options:
@@ -54,16 +58,17 @@ def hacker_cargando(mensaje):
     print(RESET)
 
 def cargar_configuracion():
-    """Carga la configuración guardada, si existe, y asegura valores predeterminados."""
-    default_config = {'download_path': str(Path.home() / "Music" / "MEmu Music"), 'quality': '192', 'search_limit': 10}
+    """Carga la configuración guardada o asegura valores predeterminados."""
+    default_config = {
+        'download_path': str(Path.home() / "Music" / "Downloads"),
+        'quality': '192',
+        'search_limit': 10,
+        'format': 'mp3'  # Valor predeterminado
+    }
     if CONFIG_PATH.is_file():
         with open(CONFIG_PATH, 'r') as config_file:
             user_config = json.load(config_file)
-            for key, value in default_config.items():
-                if key not in user_config:
-                    user_config[key] = value
-                    guardar_configuracion(user_config)
-            return user_config
+            return {**default_config, **user_config}
     return default_config
 
 def guardar_configuracion(config):
@@ -82,18 +87,6 @@ def obtener_ruta_descarga(config):
             guardar_configuracion(config)
     return Path(config["download_path"])
 
-def obtener_formato():
-    """Permite al usuario seleccionar un formato de salida."""
-    formatos = ["mp3", "mp4"]
-    print("\nFormatos disponibles:")
-    for i, formato in enumerate(formatos, 1):
-        print(f"[{i}] {formato}")
-    seleccion = input(YELLOW + "Selecciona un formato: " + RESET).strip()
-    if seleccion.isdigit() and 1 <= int(seleccion) <= len(formatos):
-        return formatos[int(seleccion) - 1]
-    print(RED + "Selección inválida, se usará mp3 por defecto." + RESET)
-    return "mp3"
-
 def mostrar_resultados(resultados):
     """Muestra los resultados de búsqueda al usuario."""
     print("\n" + GREEN + "Resultados encontrados:" + RESET)
@@ -102,10 +95,16 @@ def mostrar_resultados(resultados):
         duracion = f"{duracion // 60}:{duracion % 60:02d}" if isinstance(duracion, int) else "??:??"
         print(f"[{i + 1}] {entry['title']} | Duración: {duracion} | Autor: {entry.get('uploader', 'Desconocido')}")
 
-def verificar_archivo_existente(salida, title, ext):
-    """Verifica si el archivo ya existe en la ruta de salida."""
-    safe_title = re.sub(r'[<>:"/\\|?*]', '', title)
-    return Path(salida / f"{safe_title}.{ext}").is_file()
+def agregar_metadatos(archivo, metadatos):
+    """Agrega etiquetas ID3 a un archivo MP3."""
+    try:
+        audio = EasyID3(archivo)
+        for clave, valor in metadatos.items():
+            audio[clave] = valor
+        audio.save()
+        print(f"{GREEN}Metadatos añadidos a {archivo}{RESET}")
+    except Exception as e:
+        print(f"{RED}Error al agregar metadatos: {e}{RESET}")
 
 def hook(d):
     """Proporciona información sobre el progreso de la descarga."""
@@ -115,12 +114,23 @@ def hook(d):
     elif d['status'] == 'finished':
         print(f"\n{GREEN}Descarga completa: {d['filename']}{RESET}")
 
+def seleccionar_formato(config):
+    """Permite al usuario seleccionar entre formato MP3 o MP4."""
+    print(BLUE + "Formato actual: " + RESET, config["format"].upper())
+    print(YELLOW + "Opciones disponibles: MP3, MP4" + RESET)
+    nuevo_formato = input(BLUE + "Selecciona el nuevo formato: " + RESET).strip().lower()
+    if nuevo_formato in ["mp3", "mp4"]:
+        config["format"] = nuevo_formato
+        guardar_configuracion(config)
+        print(GREEN + f"Formato cambiado a {nuevo_formato.upper()} correctamente." + RESET)
+    else:
+        print(RED + "Formato inválido. No se realizaron cambios." + RESET)
+
 def descargar_cancion():
     hacker_titulo()
     config = cargar_configuracion()
     salida = obtener_ruta_descarga(config)
     salida.mkdir(parents=True, exist_ok=True)
-    formato = obtener_formato()
 
     while True:
         hacker_menu()
@@ -134,10 +144,9 @@ def descargar_cancion():
 
             hacker_cargando("Buscando canciones")
             ydl_opts = {
-                'format': 'bestaudio/best' if formato == "mp3" else 'bestvideo+bestaudio',
-                'outtmpl': str(salida / f'%(title)s.{formato}'),
-                'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': config["quality"]}] if formato == "mp3" else [],
+                'format': 'bestaudio/best' if config["format"] == "mp3" else 'bestvideo+bestaudio',
                 'noplaylist': True,
+                'outtmpl': str(salida / f'%(title)s.{"mp3" if config["format"] == "mp3" else "mp4"}'),
                 'progress_hooks': [hook]
             }
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
@@ -145,12 +154,9 @@ def descargar_cancion():
                 if 'entries' in resultados and len(resultados['entries']) > 0:
                     mostrar_resultados(resultados)
                     seleccion = input(BLUE + "Selecciona los videos a descargar (separados por comas): " + RESET).strip()
-                    indices = [int(x) - 1 for x in seleccion.split(",") if x.strip().isdigit() and 0 <= int(x) - 1 < len(resultados['entries'])]
+                    indices = [int(x) - 1 for x in seleccion.split(",") if x.strip().isdigit()]
                     for i in indices:
                         video = resultados['entries'][i]
-                        if verificar_archivo_existente(salida, video['title'], formato):
-                            print(YELLOW + f"Saltando {video['title']}: ya existe." + RESET)
-                            continue
                         ydl.download([video['webpage_url']])
                 else:
                     print(RED + "No se encontraron resultados." + RESET)
@@ -162,16 +168,33 @@ def descargar_cancion():
                 continue
             hacker_cargando("Iniciando descarga")
             ydl_opts = {
-                'format': 'bestaudio/best' if formato == "mp3" else 'bestvideo+bestaudio',
-                'outtmpl': str(salida / f'%(title)s.{formato}'),
-                'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': config["quality"]}] if formato == "mp3" else [],
+                'format': 'bestaudio/best' if config["format"] == "mp3" else 'bestvideo+bestaudio',
+                'outtmpl': str(salida / f'%(title)s.{"mp3" if config["format"] == "mp3" else "mp4"}'),
                 'progress_hooks': [hook]
             }
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([enlace])
 
         elif opcion == "3":
-            print(YELLOW + "¡Hasta luego, !" + RESET)
+            enlace = input(BLUE + "Ingresa el enlace de la lista de reproducción: " + RESET).strip()
+            hacker_cargando("Descargando lista de reproducción")
+            ydl_opts = {
+                'format': 'bestaudio/best' if config["format"] == "mp3" else 'bestvideo+bestaudio',
+                'outtmpl': str(salida / f'%(playlist_title)s/%(title)s.{"mp3" if config["format"] == "mp3" else "mp4"}'),
+                'progress_hooks': [hook],
+                'noplaylist': False
+            }
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([enlace])
+
+        elif opcion == "4":
+            salida = obtener_ruta_descarga(config)
+
+        elif opcion == "5":
+            seleccionar_formato(config)
+
+        elif opcion == "6":
+            print(YELLOW + "¡Hasta luego, hacker!" + RESET)
             break
 
         else:
