@@ -89,7 +89,7 @@ def obtener_ruta_descarga(config):
     """Permite al usuario especificar la ruta de descarga o usar la predeterminada."""
     print(GREEN + "Ruta de descarga actual: " + RESET, config["download_path"])
     respuesta = input(YELLOW + "¿Deseas cambiar la ruta? (si/no): " + RESET).strip().lower()
-    if respuesta == "s":
+    if respuesta == "si":
         ruta = input(BLUE + "Ingresa la nueva ruta de descarga: " + RESET).strip()
         if ruta:
             config["download_path"] = str(Path(ruta).expanduser())
